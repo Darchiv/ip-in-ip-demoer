@@ -35,7 +35,7 @@ class Router:
     class_defaultLocalIP = NetworkSettings.class_defaultGateway
 
     def __init__(self, global_network, local_network=LOCAL_DEFAULT):
-        self.network = ["", ""]
+        self.network[2]
         if local_network == Router.LOCAL_DEFAULT:
             self.network[Router.LOCAL] = NetworkSettings(Router.class_defaultLocalIP)
         else:
