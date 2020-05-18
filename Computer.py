@@ -35,9 +35,10 @@ class Router:
     class_defaultLocalIP = NetworkSettings.class_defaultGateway
 
     def __init__(self, global_network, local_network=LOCAL_DEFAULT):
-        self.network[2]
+        self.network = [None]*2
         if local_network == Router.LOCAL_DEFAULT:
             self.network[Router.LOCAL] = NetworkSettings(Router.class_defaultLocalIP)
+            self.network[Router.GLOBAL] = global_network
         else:
             self.network = [local_network, global_network]
 
@@ -45,5 +46,8 @@ class Router:
 c = Computer([10, 10], Computer.NETWORK_AUTO)
 c2 = Computer([10, 10], Computer.NETWORK_AUTO)
 
+r1 = Router(NetworkSettings("10.0.0.1", gateway="10.0.0.2"))
+
 print(c.network.ip)
 print(c2.network.ip)
+print(r1.network[Router.GLOBAL].ip)
