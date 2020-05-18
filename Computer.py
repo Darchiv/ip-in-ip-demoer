@@ -28,6 +28,20 @@ class Computer:
             self.network = network
 
 
+class Router:
+    LOCAL = 0
+    GLOBAL = 1
+    LOCAL_DEFAULT = "auto"
+    class_defaultLocalIP = NetworkSettings.class_defaultGateway
+
+    def __init__(self, global_network, local_network=LOCAL_DEFAULT):
+        self.network = ["", ""]
+        if local_network == Router.LOCAL_DEFAULT:
+            self.network[Router.LOCAL] = NetworkSettings(Router.class_defaultLocalIP)
+        else:
+            self.network = [local_network, global_network]
+
+
 c = Computer([10, 10], Computer.NETWORK_AUTO)
 c2 = Computer([10, 10], Computer.NETWORK_AUTO)
 
