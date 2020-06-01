@@ -1,23 +1,35 @@
-from typing import Any
+from typing import Any, Dict, Callable
 
-from Computer import Computer, Router, Connection
+from Computer import Computer, Router, Connection, Node
 
 class NetworkManager:
-    def __init__(self):
-        self.nodes = {}
+    def __init__(self, remove_connection: Callable[[Any], None]):
+        self.nodes: Dict[Any, Node] = {}
+        self.remove_connection = remove_connection
 
-    # def getArgByKey(self, key: Any):
-    #     return 
-
-    def addComputer(self, key: Any, on_remove=None):
+    def addComputer(self, key: Any):
         print('Adding a computer: ', key)
         self.nodes[key] = Computer(0)
 
-    def addRouter(self, key: Any, on_remove=None):
+    def addRouter(self, key: Any):
         print('Adding a router: ', key)
         self.nodes[key] = Router(0)
 
+    def addConnection(self, key1: Any, key2: Any) -> Connection:
+        print('Adding a connection between', key1, 'and', key2)
+        node1 = self.nodes[key1]
+        node2 = self.nodes[key2]
+
+        connection = Connection(node1, node2)
+        node1.connections.add(connection)
+        node2.connections.add(connection)
+        return connection
+
     def deleteNode(self, key: Any):
         print('Deleting a node: ', key)
-        # TODO: Also delete connections of that node
+        node: Node = self.nodes[key]
+
+        for connection in node.connections:
+            self.remove_connection(connection.arg)
+
         del self.nodes[key]

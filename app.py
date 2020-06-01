@@ -10,9 +10,10 @@ Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
-from manager import NetworkManager
 from kivy.core.window import Window
 
+from Computer import DemoerException
+from manager import NetworkManager
 
 class Demoer(FloatLayout):
     # multiple choice bubble menu for node addition
@@ -39,12 +40,12 @@ class Demoer(FloatLayout):
     # global state - adding connection or not
     isInConnectionMode = False
 
-    netManager = NetworkManager()
-
     def __init__(self, *args, **kwargs):
         # set window color
         Window.clearcolor = (0.7, 0.7, 0.7, 1)
         super(Demoer, self).__init__(*args, **kwargs)
+
+        self.netManager = NetworkManager(self.__deleteLine)
 
     ## switch between placing connection or editing nodes
     def toggleConnectionMode(self, instance):
@@ -60,6 +61,10 @@ class Demoer(FloatLayout):
     def clearBubbles(self):
         self.remove_widget(self.nodeBubble)
         self.remove_widget(self.defaultBubble)
+
+    def __deleteLine(self, line):
+        print('deleting line', line)
+        self.canvas.remove(line)
 
     # remove active node after clicking in bubble menu
     def deleteNode(self, instance):
@@ -79,7 +84,6 @@ class Demoer(FloatLayout):
         nodeLabel.center_x = nodeLabel.parent.center_x
         nodeLabel.center_y = nodeLabel.parent.center_y-10
         nodeButton.bind(on_press=self.showNodeBubble)
-        nodeButton.type = "Computer"
         self.add_widget(nodeButton)
         self.netManager.addComputer(nodeButton)
         nodeLabel.text = "PC"
@@ -96,7 +100,6 @@ class Demoer(FloatLayout):
         nodeLabel.center_x = nodeLabel.parent.center_x
         nodeLabel.center_y = nodeLabel.parent.center_y-10
         nodeButton.bind(on_press=self.showNodeBubble)
-        nodeButton.type = "Router"
         self.add_widget(nodeButton)
         self.netManager.addRouter(nodeButton)
         nodeLabel.text = "R"
@@ -112,12 +115,15 @@ class Demoer(FloatLayout):
             self.newConnButton.bind(on_press=self.toggleConnectionMode)
             self.add_widget(self.nodeBubble)
         else:
-            if (instance.type == "Router" and self.pendingNodeRef.type == "Computer") or \
-                    (self.pendingNodeRef.type == "Router" and instance.type == "Computer") or \
-                    (self.pendingNodeRef.type == "Router" and instance.type == "Router"):
-                with self.canvas.before:
-                    Line(points=[self.pendingNodeRef.pos[0] + 20, self.pendingNodeRef.pos[1] + 20,
-                                 instance.pos[0] + 20, instance.pos[1] + 20], width=2)
+            try:
+                connection = self.netManager.addConnection(instance, self.pendingNodeRef)
+            except DemoerException as e:
+                print(e.message)
+            else:
+                line = Line(points=[self.pendingNodeRef.pos[0] + 20, self.pendingNodeRef.pos[1] + 20,
+                            instance.pos[0] + 20, instance.pos[1] + 20], width=2)
+                self.canvas.add(line)
+                connection.setArg(line)
                 self.toggleConnectionMode(Button())
 
     # show bubble on right-clicking canvas
