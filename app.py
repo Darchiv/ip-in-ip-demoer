@@ -12,6 +12,8 @@ from kivy.uix.label import Label
 from kivy.uix.widget import Widget
 from kivy.core.window import Window
 
+from manager import NetworkManager
+
 
 class Demoer(FloatLayout):
 
@@ -36,6 +38,8 @@ class Demoer(FloatLayout):
         Window.clearcolor=(0.7, 0.7, 0.7, 1)
         super(Demoer, self).__init__(*args, **kwargs)
 
+        self.netManager = NetworkManager()
+
     def toggleConnectionMode(self, instance):
         self.clearBubbles()
         if not self.isInConnectionMode:
@@ -50,6 +54,7 @@ class Demoer(FloatLayout):
         self.remove_widget(self.defaultBubble)
 
     def deleteNode(self, instance):
+        self.netManager.deleteNode(self.pendingNodeRef)
         self.clearBubbles()
         self.remove_widget(self.pendingNodeRef)
 
@@ -57,6 +62,8 @@ class Demoer(FloatLayout):
         nodebutton = Button(pos=(self.pendingNodePosY, self.pendingNodePosX), size_hint=(None, None), size=(40, 40))
         nodebutton.bind(on_press=self.showNodebubble)
         self.add_widget(nodebutton)
+        # TODO: Different types of nodes
+        self.netManager.addComputer(nodebutton)
 
     def showNodebubble(self, instance):
         if not self.isInConnectionMode:
