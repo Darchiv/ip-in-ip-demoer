@@ -1,6 +1,7 @@
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.config import Config
+from kivy.graphics.vertex_instructions import Line
 from kivy.uix.bubble import Bubble
 
 Config.set('graphics', 'resizable', False)
@@ -29,13 +30,27 @@ class Demoer(FloatLayout):
 
     pendingNodeRef = Button()
 
+    isInConnectionMode = False
+
     def __init__(self, *args, **kwargs):
         Window.clearcolor=(0.7, 0.7, 0.7, 1)
         super(Demoer, self).__init__(*args, **kwargs)
 
-    def deleteNode(self, instance):
+    def toggleConnectionMode(self, instance):
+        self.clearBubbles()
+        if not self.isInConnectionMode:
+            self.pendingNodeRef.background_color = (1, 0.5, 0.5, 1)
+            self.isInConnectionMode = True
+        else:
+            self.pendingNodeRef.background_color = (1, 1, 1, 1)
+            self.isInConnectionMode = False
+
+    def clearBubbles(self):
         self.remove_widget(self.nodeBubble)
         self.remove_widget(self.defaultBubble)
+
+    def deleteNode(self, instance):
+        self.clearBubbles()
         self.remove_widget(self.pendingNodeRef)
 
     def addNode(self, instance):
@@ -44,16 +59,21 @@ class Demoer(FloatLayout):
         self.add_widget(nodebutton)
 
     def showNodebubble(self, instance):
-        self.remove_widget(self.nodeBubble)
-        self.remove_widget(self.defaultBubble)
-        self.pendingNodeRef = instance
-        self.nodeBubble.pos = (instance.pos[0]-105, instance.pos[1]+40)
-        self.deleteNodeButton.bind(on_press=self.deleteNode)
-        self.add_widget(self.nodeBubble)
+        if not self.isInConnectionMode:
+            self.clearBubbles()
+            self.pendingNodeRef = instance
+            self.nodeBubble.pos = (instance.pos[0]-105, instance.pos[1]+40)
+            self.deleteNodeButton.bind(on_press=self.deleteNode)
+            self.newConnButton.bind(on_press=self.toggleConnectionMode)
+            self.add_widget(self.nodeBubble)
+        else:
+            with self.canvas.before:
+                line=Line(points=[self.pendingNodeRef.pos[0]+20, self.pendingNodeRef.pos[1]+20,
+                             instance.pos[0]+20, instance.pos[1]+20], width=2)
+            self.toggleConnectionMode(Button())
 
     def showDefaultBubble(self, posx, posy):
-        self.remove_widget(self.nodeBubble)
-        self.remove_widget(self.defaultBubble)
+        self.clearBubbles()
         self.pendingNodePosY = posx - 20
         self.pendingNodePosX = posy - 20
         self.defaultBubble.pos = (posx-50, posy)
@@ -64,8 +84,10 @@ class Demoer(FloatLayout):
         if after and self.collide_point(touch.pos[0], touch.pos[1]):
             self.remove_widget(self.defaultBubble)
             if touch.button == "right":
-                self.showDefaultBubble(touch.x, touch.y)
-                return True
+                if not self.isInConnectionMode:
+                    self.showDefaultBubble(touch.x, touch.y)
+                else:
+                    self.toggleConnectionMode(Button())
         else:
             Clock.schedule_once(lambda dt: self.on_touch_down(touch, True), 0.01)
             return super(Demoer, self).on_touch_down(touch)
