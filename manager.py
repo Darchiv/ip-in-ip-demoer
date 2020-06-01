@@ -15,6 +15,12 @@ class NetworkManager:
         print('Adding a router: ', key)
         self.nodes[key] = Router(0)
 
+    def isComputer(self, key: Any):
+        return isinstance(self.nodes[key], Computer)
+
+    def isRouter(self, key: Any):
+        return isinstance(self.nodes[key], Router)
+
     def addConnection(self, key1: Any, key2: Any) -> Connection:
         print('Adding a connection between', key1, 'and', key2)
         node1 = self.nodes[key1]
