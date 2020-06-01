@@ -29,6 +29,7 @@ class Computer:
 
 
 class Router:
+    class_img = "router.jpg"
     LOCAL = 0
     GLOBAL = 1
     LOCAL_DEFAULT = "auto"
