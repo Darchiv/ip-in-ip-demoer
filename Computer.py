@@ -1,3 +1,9 @@
+import enum
+from typing import Any, Union
+
+class DemoerException(Exception):
+    pass
+
 class NetworkSettings:
     class_lastIP = "192.168.0.1"
     class_defaultMask = 24
@@ -27,6 +33,7 @@ class Computer:
         else:
             self.network = network
 
+        self.connections = []
 
 class Router:
     class_img = "router.jpg"
@@ -43,12 +50,37 @@ class Router:
         else:
             self.network = [local_network, global_network]
 
+        self.connections = []
 
-c = Computer([10, 10], Computer.NETWORK_AUTO)
-c2 = Computer([10, 10], Computer.NETWORK_AUTO)
+class ConnectionType(enum.Enum):
+    '''A type of connection. An intra network applies to computers and routers
+    within the same network whereas a tunnel one is between different routers.'''
 
-r1 = Router(NetworkSettings("10.0.0.1", gateway="10.0.0.2"))
+    INTRA_NETWORK = 1
+    TUNNEL = 2
 
-print(c.network.ip)
-print(c2.network.ip)
-print(r1.network[Router.GLOBAL].ip)
+class Connection:
+    '''A logical representation of a connection between nodes (computers or routers).'''
+
+    def __init__(self, node1: Union[Computer, Router], node2: Union[Computer, Router]):
+        if isinstance(node1, Computer) and isinstance(node2, Computer):
+            raise DemoerException('A connection between two Computers cannot be created')
+
+        if isinstance(node1, Router) and isinstance(node2, Router):
+            self.type = ConnectionType.TUNNEL
+        else:
+            self.type = ConnectionType.INTRA_NETWORK
+
+        self.node1 = node1
+        self.node2 = node2
+
+
+if __name__ == '__main__':
+    c = Computer([10, 10], Computer.NETWORK_AUTO)
+    c2 = Computer([10, 10], Computer.NETWORK_AUTO)
+
+    r1 = Router(NetworkSettings("10.0.0.1", gateway="10.0.0.2"))
+
+    print(c.network.ip)
+    print(c2.network.ip)
+    print(r1.network[Router.GLOBAL].ip)
