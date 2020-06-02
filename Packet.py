@@ -1,3 +1,6 @@
+import math
+
+
 class Protocol:
     IpInIp = 4
     ICMP = 1
@@ -7,7 +10,7 @@ class Protocol:
 
 class Packet:
     # for representatnion real is
-    MAXSIZE = 30
+    MAXSIZE = 50
     # IPv4
     VERSION = 4
     # no options - packet header size 5 * 32bit
@@ -39,31 +42,37 @@ class Packet:
         self.destination = destination
         self.protocol = protocol
         self.totalLength = 20 + len(data)
+        self.str_header_size = len(self.header_to_str())
 
-    def toData(self):
+    def header_to_str(self):
         header = [self.VERSION, self.IHL, self.dscp,
                   int(self.header_size + len(self.data)), self.id, "00" + str(self.flag2),
                   self.offset, self.ttl, self.protocol, "checksum", self.source, self.destination]
-        result = str(header)
+        return str(header)
+
+    def toData(self):
+        result = self.header_to_str()
         result += self.data
         return "{" + result + "}"
 
     def encap(self, source, destination, protocol=Protocol.UDP,
               ttl=15, offset=0, flag2=0, uid=0, dscp=0, max_size=30):
-        packet_size = self.header_size + len(self.data)
-        if packet_size > self.MAXSIZE:
+        new_packet_size = self.header_size*2 + len(self.data)
+        if new_packet_size > self.MAXSIZE:
             # larger than max datagram size
             p1 = Packet(source, destination, data=self.toData()[0:max_size - self.MAXSIZE])
             p2 = Packet(source, destination, data=self.toData()[max_size - self.MAXSIZE:],
                         uid=self.id+1)
             return [p1, p2]
 
-        elif packet_size > max_size:
+        elif new_packet_size > max_size:
             # larger than network settings
-            # todo take into account there may be need for more than 2 packets
-            p1 = Packet(source, destination, data=self.toData()[0:max_size - self.header_size])
-            p2 = Packet(source, destination, data=self.toData()[max_size - self.header_size:],
-                        offset=(max_size - self.header_size))
-            return [p1, p2]
+            p = []
+            c = math.ceil((self.str_header_size+len(self.data))/(max_size-self.header_size))
+            max_data_size = max_size - self.header_size
+            for i in range(0, c):
+                off = i*max_data_size
+                p.append(Packet(source, destination, data=self.toData()[off:off+max_data_size], offset=off))
+            return p
         else:
             return [Packet(source, destination, data=self.toData())]
