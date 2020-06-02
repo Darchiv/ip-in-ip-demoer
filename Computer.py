@@ -1,5 +1,6 @@
 import enum
 from typing import Any, Union, Set
+from ipaddress import IPv4Interface
 
 class DemoerException(Exception):
     def __init__(self, message):
@@ -77,11 +78,27 @@ class Connection:
 
         self.node1 = node1
         self.node2 = node2
+        self.address1: IPv4Interface
+        self.address2: IPv4Interface
         self.arg: Any
 
     def setArg(self, arg: Any):
         self.arg = arg
 
+    def includesNode(self, node: Node):
+        '''Checks whether the node is part of this connection.'''
+        return node in (self.node1, self.node2)
+
+    def setAddress(self, node: Node, address: IPv4Interface):
+        if self.node1 == node:
+            self.address1 = address
+        elif self.node2 == node:
+            self.address2 = address
+        else:
+            raise RuntimeError('Node {} is not part of connection {}'.format(node, self))
+
+        # TODO: Propagate to the whole network and check for validity (whether
+        # all Computers and Routers are in the same network).
 
 if __name__ == '__main__':
     c = Computer([10, 10], Computer.NETWORK_AUTO)
