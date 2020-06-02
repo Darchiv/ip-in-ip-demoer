@@ -64,7 +64,7 @@ class Demoer(FloatLayout):
 
     def __deleteLine(self, line):
         print('deleting line', line)
-        self.canvas.remove(line)
+        self.canvas.before.remove(line)
 
     # remove active node after clicking in bubble menu
     def deleteNode(self, instance):
@@ -122,7 +122,7 @@ class Demoer(FloatLayout):
             else:
                 line = Line(points=[self.pendingNodeRef.pos[0] + 20, self.pendingNodeRef.pos[1] + 20,
                             instance.pos[0] + 20, instance.pos[1] + 20], width=2)
-                self.canvas.add(line)
+                self.canvas.before.add(line)
                 connection.setArg(line)
                 self.toggleConnectionMode(Button())
 
