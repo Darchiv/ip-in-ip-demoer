@@ -1,8 +1,10 @@
 import enum
 from typing import Any, Union
 
+
 class DemoerException(Exception):
     pass
+
 
 class NetworkSettings:
     class_lastIP = "192.168.0.1"
@@ -13,7 +15,7 @@ class NetworkSettings:
     def __init__(self, ip=NEXT_IP, mask=class_defaultMask, gateway=class_defaultGateway):
         if ip == NetworkSettings.NEXT_IP:
             tmp_ip = NetworkSettings.class_lastIP.split('.')
-            tmp_ip[-1] = str(int(tmp_ip[-1])+1)
+            tmp_ip[-1] = str(int(tmp_ip[-1]) + 1)
             NetworkSettings.class_lastIP = '.'.join(tmp_ip)
             self.ip = NetworkSettings.class_lastIP
         else:
@@ -35,6 +37,7 @@ class Computer:
 
         self.connections = []
 
+
 class Router:
     class_img = "router.jpg"
     LOCAL = 0
@@ -43,7 +46,7 @@ class Router:
     class_defaultLocalIP = NetworkSettings.class_defaultGateway
 
     def __init__(self, global_network, local_network=LOCAL_DEFAULT):
-        self.network = [None]*2
+        self.network = [None] * 2
         if local_network == Router.LOCAL_DEFAULT:
             self.network[Router.LOCAL] = NetworkSettings(Router.class_defaultLocalIP)
             self.network[Router.GLOBAL] = global_network
@@ -52,12 +55,14 @@ class Router:
 
         self.connections = []
 
+
 class ConnectionType(enum.Enum):
     '''A type of connection. An intra network applies to computers and routers
     within the same network whereas a tunnel one is between different routers.'''
 
     INTRA_NETWORK = 1
     TUNNEL = 2
+
 
 class Connection:
     '''A logical representation of a connection between nodes (computers or routers).'''
