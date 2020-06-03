@@ -57,6 +57,8 @@ class Packet:
 
     def encap(self, source, destination, protocol=Protocol.UDP,
               ttl=15, offset=0, flag2=0, uid=0, dscp=0, max_size=30):
+        # TODO: add padding - make sure data starts on a 32 bit boundary.
+
         new_packet_size = self.header_size*2 + len(self.data)
         if new_packet_size > self.MAXSIZE:
             # larger than max datagram size
