@@ -10,7 +10,7 @@ class Protocol:
 
 class Packet:
     # for representatnion real is
-    MAXSIZE = 100
+    MAXSIZE = 120
     # IPv4
     VERSION = 4
     # no options - packet header size 5 * 32bit
@@ -80,8 +80,8 @@ class Packet:
     def datagram_fragment(self):
         pstr = self.to_string()
         if len(pstr) > self.MAXSIZE:
-            p1 = Packet(self.source, self.destination, data=self.to_string()[0:max_size - self.MAXSIZE])
-            p2 = Packet(self.source,  self.destination, data=self.to_string()[max_size - self.MAXSIZE:],
+            p1 = Packet(self.source, self.destination, data=self.data_to_string()[0:self.MAXSIZE-len(self.header_to_str())])
+            p2 = Packet(self.source,  self.destination, data=self.data_to_string()[self.MAXSIZE-len(self.header_to_str()):],
                         uid=self.id + 1)
             return [p1, p2]
         else:
