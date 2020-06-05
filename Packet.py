@@ -41,40 +41,57 @@ class Packet:
         self.source = source
         self.destination = destination
         self.protocol = protocol
-        self.totalLength = 20 + len(data)
+        # self.totalLength = 20 + len(data)
+        self.totalLength = 20 + (len(data) if isinstance(data, str) else len(data.to_string()))
         self.str_header_size = len(self.header_to_str())
 
     def header_to_str(self):
         header = [self.VERSION, self.IHL, self.dscp,
-                  int(self.header_size + len(self.data)), self.id, "00" + str(self.flag2),
+                  int(self.header_size + (len(self.data) if isinstance(self.data, str) else len(self.data.to_string()))),
+                  self.id, "00" + str(self.flag2),
                   self.offset, self.ttl, self.protocol, "checksum", self.source, self.destination]
         return str(header)
 
-    def toData(self):
-        result = self.header_to_str()
-        result += self.data
-        return "{" + result + "}"
+    def data_to_string(self):
+        data = ""
+        if isinstance(self.data, str):
+            data = self.data
+        elif isinstance(self.data, Packet):
+            data = self.data.to_string()
+        return data
+
+    def to_string(self):
+        header = self.header_to_str()
+
+        # TODO: add padding - make sure data starts on a 32 bit boundary.
+        return "{" + header + self.data_to_string() + "}"
 
     def encap(self, source, destination, protocol=Protocol.UDP,
-              ttl=15, offset=0, flag2=0, uid=0, dscp=0, max_size=30):
-        # TODO: add padding - make sure data starts on a 32 bit boundary.
+              ttl=15, offset=0, flag2=0, uid=0, dscp=0):
+        return Packet(source, destination, data=self)
 
-        new_packet_size = self.header_size*2 + len(self.data)
-        if new_packet_size > self.MAXSIZE:
-            # larger than max datagram size
-            p1 = Packet(source, destination, data=self.toData()[0:max_size - self.MAXSIZE])
-            p2 = Packet(source, destination, data=self.toData()[max_size - self.MAXSIZE:],
-                        uid=self.id+1)
-            return [p1, p2]
-
-        elif new_packet_size > max_size:
-            # larger than network settings
-            p = []
-            c = math.ceil((self.str_header_size+len(self.data))/(max_size-self.header_size))
-            max_data_size = max_size - self.header_size
-            for i in range(0, c):
-                off = i*max_data_size
-                p.append(Packet(source, destination, data=self.toData()[off:off+max_data_size], offset=off))
-            return p
+    def decap(self):
+        if isinstance(self.data, Packet):
+            return self.data
         else:
-            return [Packet(source, destination, data=self.toData())]
+            print("It is not encapsulated packet")
+
+    def fragment(self, max_size=60):
+        pstr = self.to_string()
+        if len(pstr) > max_size:
+            h_str = self.header_to_str()
+            d_str = self.data_to_string()
+            data_max_size = max_size - len(h_str)
+            c = math.ceil(len(d_str) / data_max_size)
+            if c <= 0:
+                print("Data max size too low ", data_max_size)
+
+            data_parts = [d_str[i:i + c] for i in range(0, len(d_str), c)]
+            result = []
+            for data_part in data_parts:
+                result.append("{" + self.header_to_str() + data_part + "}")
+
+            return result
+
+        else:
+            return self.to_string()
