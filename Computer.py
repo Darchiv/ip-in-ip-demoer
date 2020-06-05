@@ -26,19 +26,30 @@ class NetworkSettings:
 class Node:
     def __init__(self):
         self.connections: Set[Connection] = set()
+        self.id: int
+
+    def getName(self):
+        pass
 
 class Computer(Node):
     class_img = "pc.jpg"
     NETWORK_AUTO = "auto"
 
+    next_id: int = 1
+
     def __init__(self, position, network=NETWORK_AUTO):
         super().__init__()
 
+        self.id: int = Computer.next_id
+        Computer.next_id += 1
         self.position = position
         if network == Computer.NETWORK_AUTO:
             self.network = NetworkSettings()
         else:
             self.network = network
+
+    def getName(self):
+        return 'PC{}'.format(self.id)
 
 class Router(Node):
     class_img = "router.jpg"
@@ -47,15 +58,22 @@ class Router(Node):
     LOCAL_DEFAULT = "auto"
     class_defaultLocalIP = NetworkSettings.class_defaultGateway
 
+    next_id: int = 1
+
     def __init__(self, global_network, local_network=LOCAL_DEFAULT):
         super().__init__()
 
+        self.id: int = Router.next_id
+        Router.next_id += 1
         self.network = [None] * 2
         if local_network == Router.LOCAL_DEFAULT:
             self.network[Router.LOCAL] = NetworkSettings(Router.class_defaultLocalIP)
             self.network[Router.GLOBAL] = global_network
         else:
             self.network = [local_network, global_network]
+
+    def getName(self):
+        return 'R{}'.format(self.id)
 
 class ConnectionType(enum.Enum):
     '''A type of connection. An intra network applies to computers and routers
@@ -78,8 +96,8 @@ class Connection:
 
         self.node1 = node1
         self.node2 = node2
-        self.address1: IPv4Interface
-        self.address2: IPv4Interface
+        self.address1 = IPv4Interface('0.0.0.0/0')
+        self.address2 = IPv4Interface('0.0.0.0/0')
         self.arg: Any
 
     def setArg(self, arg: Any):
@@ -99,6 +117,28 @@ class Connection:
 
         # TODO: Propagate to the whole network and check for validity (whether
         # all Computers and Routers are in the same network).
+
+    def getAddressStr(self, node: Node) -> str:
+        if self.node1 == node:
+            return str(self.address1)
+
+        if self.node2 == node:
+            return str(self.address2)
+
+        raise RuntimeError('Node {} is not part of connection {}'.format(node, self))
+
+    def getDestinationName(self, node: Node):
+        if self.node1 == node:
+            return '-> {}'.format(self.node2.getName())
+
+        if self.node2 == node:
+            return '-> {}'.format(self.node1.getName())
+
+        raise RuntimeError('Node {} is not part of connection {}'.format(node, self))
+
+    def disband(self):
+        self.node1.connections.discard(self)
+        self.node2.connections.discard(self)
 
 if __name__ == '__main__':
     c = Computer([10, 10], Computer.NETWORK_AUTO)

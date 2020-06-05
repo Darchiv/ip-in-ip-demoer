@@ -1,3 +1,5 @@
+import functools
+
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.config import Config
@@ -60,6 +62,7 @@ class Demoer(FloatLayout):
         self.sidePanelLogTab = TabbedPanelItem(text="Logi")
         self.sidePanelLogLayout = GridLayout(cols=1, spacing=20, size_hint=(None, None), size=(190, 550))
         self.sidePanelLogLayout.bind(minimum_height=self.sidePanelLogLayout.setter('height'))
+        self.sidePanelNodeTab = None
 
         # test of WIP log display
         for i in range(100):
@@ -101,13 +104,28 @@ class Demoer(FloatLayout):
             self.isInConnectionMode = False
 
     def showNodeEditPanel(self, instance):
-        self.sidePanelTabbedPanel.remove_widget(self.sidePanelTabbedPanel.children[1])
-        sidePanelNodeTab = TabbedPanelItem(text=instance.children[0].text)
+        print('Show edit panel of:', instance)
+        # self.sidePanelTabbedPanel.remove_widget(self.sidePanelTabbedPanel.children[1])
+        tabname = self.netManager.getNodeName(instance)
+        if self.sidePanelNodeTab is None:
+            self.sidePanelNodeTab = TabbedPanelItem(text=tabname)
+            self.sidePanelTabbedPanel.add_widget(self.sidePanelNodeTab)
+        else:
+            self.sidePanelNodeTab.text = tabname
+
+        self.sidePanelNodeTab.clear_widgets()
         sidePanelNodeLayout = GridLayout(cols=1, spacing=10, size_hint=(None, None), size=(190, 550))
-        sidePanelNodeLayout.add_widget(Label(text="GigabitEthernet 0/0"))
-        sidePanelNodeLayout.add_widget(TextInput())
-        sidePanelNodeTab.add_widget(sidePanelNodeLayout)
-        self.sidePanelTabbedPanel.add_widget(sidePanelNodeTab)
+
+        interfaces = self.netManager.getNodeInterfaces(instance)
+        for label, (ip, conn) in interfaces.items():
+            print('Interface:', label, 'ip:', ip)
+            sidePanelNodeLayout.add_widget(Label(text=label))
+            input_field = TextInput(text=ip, multiline=False)
+            cb = functools.partial(self.on_node_edit, conn, instance)
+            input_field.bind(on_text_validate=cb)
+            sidePanelNodeLayout.add_widget(input_field)
+
+        self.sidePanelNodeTab.add_widget(sidePanelNodeLayout)
 
     # remove active bubble menus
     def clearBubbles(self):
@@ -138,7 +156,7 @@ class Demoer(FloatLayout):
         nodeButton.bind(on_press=self.showNodeBubble)
         self.add_widget(nodeButton)
         self.netManager.addComputer(nodeButton)
-        nodeLabel.text = "PC"
+        nodeLabel.text = self.netManager.getNodeName(nodeButton)
 
     # add pending node as router after clicking in bubble menu
     def addRouter(self, instance):
@@ -154,7 +172,7 @@ class Demoer(FloatLayout):
         nodeButton.bind(on_press=self.showNodeBubble)
         self.add_widget(nodeButton)
         self.netManager.addRouter(nodeButton)
-        nodeLabel.text = "R"
+        nodeLabel.text = self.netManager.getNodeName(nodeButton)
 
     # show bubble menu on click on node
     # OR create connection between active node and clicked node when in connection mode
@@ -188,6 +206,11 @@ class Demoer(FloatLayout):
         self.newComputerButton.bind(on_press=self.addComputer)
         self.newRouterButton.bind(on_press=self.addRouter)
         self.add_widget(self.defaultBubble)
+
+    def on_node_edit(self, connection, node_button, text_input):
+        print('Changing address of', node_button, 'to', text_input.text)
+
+        # TODO: Actual address change
 
     def on_touch_down(self, touch, after=False):
         if after:

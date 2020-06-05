@@ -1,4 +1,4 @@
-from typing import Any, Dict, Callable
+from typing import Any, Dict, Set, Callable, Tuple
 from ipaddress import IPv4Interface, AddressValueError
 
 from Computer import Computer, Router, Connection, Node, DemoerException
@@ -22,6 +22,9 @@ class NetworkManager:
     def isRouter(self, key: Any):
         return isinstance(self.nodes[key], Router)
 
+    def getNodeName(self, key: Any):
+        return self.nodes[key].getName()
+
     def addConnection(self, key1: Any, key2: Any) -> Connection:
         print('Adding a connection between', key1, 'and', key2)
         node1 = self.nodes[key1]
@@ -31,6 +34,17 @@ class NetworkManager:
         node1.connections.add(connection)
         node2.connections.add(connection)
         return connection
+
+    def getNodeInterfaces(self, key: Any) -> Dict[str, Tuple[str, Connection]]:
+        interfaces: Dict[str, Tuple[str, Connection]] = {}
+        node = self.nodes[key]
+
+        for connection in node.connections:
+            key = connection.getDestinationName(node)
+            ipstr: str = connection.getAddressStr(node)
+            interfaces[key] = (ipstr, connection)
+
+        return interfaces
 
     def setAddress(self, key1: Any, key2: Any, addrStr: str):
         '''Set the network address on the key1 node's interface
@@ -55,7 +69,8 @@ class NetworkManager:
         print('Deleting a node: ', key)
         node: Node = self.nodes[key]
 
-        for connection in node.connections:
+        for connection in node.connections.copy():
+            connection.disband()
             self.remove_connection(connection.arg)
 
         del self.nodes[key]
