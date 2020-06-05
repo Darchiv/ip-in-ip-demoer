@@ -8,6 +8,6 @@ print(p.to_string())
 
 x = p.encap('A', 'B')
 
-print(x.fragment())
+print(x.mtu_fragment())
 
 

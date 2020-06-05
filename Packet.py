@@ -10,7 +10,7 @@ class Protocol:
 
 class Packet:
     # for representatnion real is
-    MAXSIZE = 50
+    MAXSIZE = 100
     # IPv4
     VERSION = 4
     # no options - packet header size 5 * 32bit
@@ -76,7 +76,18 @@ class Packet:
         else:
             print("It is not encapsulated packet")
 
-    def fragment(self, max_size=60):
+    # use this only for visualization - keep oryginal packet for easy decap/encap
+    def datagram_fragment(self):
+        pstr = self.to_string()
+        if len(pstr) > self.MAXSIZE:
+            p1 = Packet(self.source, self.destination, data=self.to_string()[0:max_size - self.MAXSIZE])
+            p2 = Packet(self.source,  self.destination, data=self.to_string()[max_size - self.MAXSIZE:],
+                        uid=self.id + 1)
+            return [p1, p2]
+        else:
+            return self
+
+    def mtu_fragment(self, max_size=60):
         pstr = self.to_string()
         if len(pstr) > max_size:
             h_str = self.header_to_str()
@@ -88,7 +99,9 @@ class Packet:
 
             data_parts = [d_str[i:i + c] for i in range(0, len(d_str), c)]
             result = []
-            for data_part in data_parts:
+            for i, data_part in enumerate(data_parts):
+                self.flag2 = 1 if data_part != data_parts[-1] else 0
+                self.offset = i*c
                 result.append("{" + self.header_to_str() + data_part + "}")
 
             return result
