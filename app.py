@@ -5,10 +5,12 @@ from kivy.clock import Clock
 from kivy.config import Config
 from kivy.graphics.context_instructions import Color
 from kivy.graphics.vertex_instructions import Line, Rectangle
+from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.bubble import Bubble
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.image import Image
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.stacklayout import StackLayout
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 from kivy.uix.textinput import TextInput
 
@@ -57,27 +59,58 @@ class Demoer(FloatLayout):
         self.isInConnectionMode = False
         self.netManager = NetworkManager(self.__deleteLine)
 
-        # define widgets of side panel
-        self.sidePanelTabbedPanel = TabbedPanel(do_default_tab=False, size=(200, 600), pos=(800, 0))
-        self.sidePanelLogTab = TabbedPanelItem(text="Logi")
-        self.sidePanelLogLayout = GridLayout(cols=1, spacing=20, size_hint=(None, None), size=(190, 550))
-        self.sidePanelLogLayout.bind(minimum_height=self.sidePanelLogLayout.setter('height'))
-        self.sidePanelNodeTab = None
+        # define widgets of side panel and add them to window
+        self.sidePanelTabbedPanel = TabbedPanel(do_default_tab=False, size=(200, 600), pos=(800, 0),
+                                                background_color=(0, 0, 0, 0), tab_width=100)
+
+        # define widgets of log display and add them to window
+        self.sidePanelLogTab = TabbedPanelItem(text="Symulacja")
+        self.sidePanelLogLayout = GridLayout(cols=1, spacing=10,
+                                             size_hint=(None, None), size=(200, 550))
+        self.logField = TextInput(padding=10, readonly=True, size_hint_max_y=None, size_hint=(None, None),
+                                  size=(190, 550))
+        self.logField.bind(minimum_height=self.logField.setter('height'))
+        self.sidePanelLogScrollView = ScrollView(size_hint=(None, None),
+                                                 size=(200, 450),
+                                                 scroll_type=['bars'], bar_width=10,
+                                                 bar_inactive_color=[1, 1, 1, .8], bar_color=[0.3, 1, 1, 1])
+        self.sidePanelLogScrollView.add_widget(self.logField)
+        self.sidePanelLogLayout.add_widget(self.sidePanelLogScrollView)
+        self.sidePanelLogTab.add_widget(self.sidePanelLogLayout)
+        self.sidePanelTabbedPanel.add_widget(self.sidePanelLogTab)
 
         # test of WIP log display
         for i in range(100):
-            self.logLabel = Label(padding=(20, 20), text="Log line test.")
-            self.sidePanelLogLayout.add_widget(self.logLabel)
+            self.logField.text = self.logField.text + "This is a test log entry. \n\n"
 
-        self.sidePanelScrollView = ScrollView(size_hint=(None, None), size=(200, 550), pos=(800, 0),
-                                              scroll_type=['bars'], bar_width=10,
-                                              bar_inactive_color=[1, 1, 1, .8], bar_color=[1, 1, 1, 1])
-        self.sidePanelScrollView.add_widget(self.sidePanelLogLayout)
-        self.sidePanelLogTab.add_widget(self.sidePanelScrollView)
-        self.sidePanelTabbedPanel.add_widget(self.sidePanelLogTab)
+        # define widgets of node edit panel to be added to window later
+        # when a node is selected, add sidePanelNodeTab with the proper tab name to sidePanelTabbedPanel
+        # and fill sidePanelNodeTab with content - interface configuration form
+        self.sidePanelNodeTab = TabbedPanelItem()
+        self.sidePanelNodeLayout = GridLayout(cols=1, spacing=5,
+                                              size_hint=(None, None), size=(200, 550))
+        self.sidePanelNodeLayout.bind(minimum_height=self.sidePanelNodeLayout.setter('height'))
+        self.sidePanelNodeScrollView = ScrollView(size_hint=(None, None), size=(200, 550), pos=(800, 0),
+                                                  scroll_type=['bars'], bar_width=10,
+                                                  bar_inactive_color=[1, 1, 1, .8], bar_color=[1, 1, 1, 1])
+        self.sidePanelNodeTab.add_widget(self.sidePanelNodeScrollView)
+        self.sidePanelNodeScrollView.add_widget(self.sidePanelNodeLayout)
+
+        # define simulation-related buttons and add them to the window
+        self.toggleSimButton = Button(text="Symuluj")
+        self.addPacketButton = Button(text="Nowy pakiet")
+        self.stepSimButton = Button(text=">|")
+        self.playSimButton = Button(text=">")
+        self.simButtonLayout = BoxLayout()
+        self.sidePanelLogLayout.add_widget(self.addPacketButton)
+        self.sidePanelLogLayout.add_widget(self.toggleSimButton)
+        self.sidePanelLogLayout.add_widget(self.simButtonLayout)
+        self.simButtonLayout.add_widget(self.playSimButton)
+        self.simButtonLayout.add_widget(self.stepSimButton)
 
         # set window color
         Window.clearcolor = (0.7, 0.7, 0.7, 1)
+
         super(Demoer, self).__init__(*args, **kwargs)
 
         self.add_widget(self.sidePanelTabbedPanel)
@@ -86,12 +119,11 @@ class Demoer(FloatLayout):
         self.canvas.before.add(Line(rectangle=(self.workAreaXPos, self.workAreaYPos,
                                                self.workAreaXDim, self.workAreaYDim), width=0.5))
 
-        # create background square behind side panel and scrollbar
+        # create background square behind side panel
         with self.canvas.before:
             Color(0.3, 0.3, 0.3, 1)
-            Rectangle(pos=(2*self.workAreaXPos+self.workAreaXDim, 0), size=(200, 600))
-            Color(0.2, 0.2, 0.2, 1)
-            Rectangle(pos=(2*self.workAreaXPos+self.workAreaXDim+190, 0), size=(10, 550))
+            Rectangle(pos=(2 * self.workAreaXPos + self.workAreaXDim, 0), size=(200, 600))
+            Color(1, 1, 1, 1)
 
     # switch between placing connection or editing nodes
     def toggleConnectionMode(self, instance):
@@ -103,29 +135,32 @@ class Demoer(FloatLayout):
             self.pendingNodeRef.background_color = (1, 1, 1, 1)
             self.isInConnectionMode = False
 
+    # display node property edit tab
     def showNodeEditPanel(self, instance):
         print('Show edit panel of:', instance)
-        # self.sidePanelTabbedPanel.remove_widget(self.sidePanelTabbedPanel.children[1])
-        tabname = self.netManager.getNodeName(instance)
-        if self.sidePanelNodeTab is None:
-            self.sidePanelNodeTab = TabbedPanelItem(text=tabname)
-            self.sidePanelTabbedPanel.add_widget(self.sidePanelNodeTab)
-        else:
-            self.sidePanelNodeTab.text = tabname
+        node_name = self.netManager.getNodeName(instance)
+        self.sidePanelNodeTab.text = node_name
 
-        self.sidePanelNodeTab.clear_widgets()
-        sidePanelNodeLayout = GridLayout(cols=1, spacing=10, size_hint=(None, None), size=(190, 550))
+        if len(self.sidePanelTabbedPanel.children) == 2:
+            self.sidePanelTabbedPanel.add_widget(self.sidePanelNodeTab)
+
+        self.sidePanelTabbedPanel.switch_to(self.sidePanelNodeTab)
+
+        self.sidePanelNodeLayout.clear_widgets()
+        self.sidePanelNodeLayout.add_widget(Label(text="Interfejsy węzła " + node_name + ":", size_hint=(1, None)))
+
+        self.sidePanelNodeLayout.add_widget(Label(text="GigabitEthernet0/0:", size_hint=(1, None), height=30))
+        input_field = TextInput(text="192.168.0.1", size_hint=(1, None), height=30)
+        self.sidePanelNodeLayout.add_widget(input_field)
 
         interfaces = self.netManager.getNodeInterfaces(instance)
         for label, (ip, conn) in interfaces.items():
             print('Interface:', label, 'ip:', ip)
-            sidePanelNodeLayout.add_widget(Label(text=label))
-            input_field = TextInput(text=ip, multiline=False)
+            self.sidePanelNodeLayout.add_widget(Label(text=label, size_hint=(1, None)))
+            input_field = TextInput(text=ip, multiline=False, size_hint=(1, None))
             cb = functools.partial(self.on_node_edit, conn, instance)
             input_field.bind(on_text_validate=cb)
-            sidePanelNodeLayout.add_widget(input_field)
-
-        self.sidePanelNodeTab.add_widget(sidePanelNodeLayout)
+            self.sidePanelNodeLayout.add_widget(input_field)
 
     # remove active bubble menus
     def clearBubbles(self):
@@ -141,6 +176,10 @@ class Demoer(FloatLayout):
         self.clearBubbles()
         self.remove_widget(self.pendingNodeRef)
         self.netManager.deleteNode(self.pendingNodeRef)
+
+        if self.sidePanelNodeTab.text == self.pendingNodeRef.children[0].text:
+            self.sidePanelTabbedPanel.remove_widget(self.sidePanelNodeTab)
+            self.sidePanelTabbedPanel.switch_to(self.sidePanelLogTab)
 
     # add pending node as computer after clicking in bubble menu
     def addComputer(self, instance):
