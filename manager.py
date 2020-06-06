@@ -46,24 +46,21 @@ class NetworkManager:
 
         return interfaces
 
-    def setAddress(self, key1: Any, key2: Any, addrStr: str):
-        '''Set the network address on the key1 node's interface
-        which is connected to the key2 node.'''
-        print('Setting the network address of', key1, '(pointed to', key2, ')')
-        node1 = self.nodes[key1]
-        node2 = self.nodes[key2]
+    def setAddress(self, key: Any, conn: Connection, addrStr: str):
+        '''Set the network address on the `key` node's interface
+        which is connected with `conn` connection.'''
+        print('Setting the network address of', key, '(connection', conn, ') to ', addrStr)
+        node = self.nodes[key]
 
         try:
             address = IPv4Interface(addrStr)
         except (ValueError, AddressValueError):
             raise DemoerException('The supplied address is invalid. Use a CIDR notation.')
 
-        for connection in node1.connections:
-            if connection.includesNode(node2):
-                connection.setAddress(node1, address)
-                break
-
-        raise RuntimeError('Connection between {} and {} does not exist'.format(key1, key2))
+        conn.setAddress(node, address)
+        # for connection in node.connections:
+            # if connection.includesNode(node2):
+                # break
 
     def deleteNode(self, key: Any):
         print('Deleting a node: ', key)

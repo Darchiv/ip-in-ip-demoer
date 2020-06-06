@@ -13,6 +13,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 from kivy.uix.textinput import TextInput
+from kivy.uix.popup import Popup
 
 Config.set('graphics', 'resizable', False)
 Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
@@ -149,15 +150,11 @@ class Demoer(FloatLayout):
         self.sidePanelNodeLayout.clear_widgets()
         self.sidePanelNodeLayout.add_widget(Label(text="Interfejsy węzła " + node_name + ":", size_hint=(1, None)))
 
-        self.sidePanelNodeLayout.add_widget(Label(text="GigabitEthernet0/0:", size_hint=(1, None), height=30))
-        input_field = TextInput(text="192.168.0.1", size_hint=(1, None), height=30)
-        self.sidePanelNodeLayout.add_widget(input_field)
-
         interfaces = self.netManager.getNodeInterfaces(instance)
         for label, (ip, conn) in interfaces.items():
             print('Interface:', label, 'ip:', ip)
-            self.sidePanelNodeLayout.add_widget(Label(text=label, size_hint=(1, None)))
-            input_field = TextInput(text=ip, multiline=False, size_hint=(1, None))
+            self.sidePanelNodeLayout.add_widget(Label(text=label, size_hint=(1, None), height=30))
+            input_field = TextInput(text=ip, multiline=False, size_hint=(1, None), height=30)
             cb = functools.partial(self.on_node_edit, conn, instance)
             input_field.bind(on_text_validate=cb)
             self.sidePanelNodeLayout.add_widget(input_field)
@@ -228,7 +225,7 @@ class Demoer(FloatLayout):
             try:
                 connection = self.netManager.addConnection(instance, self.pendingNodeRef)
             except DemoerException as e:
-                print(e.message)
+                self.showPopup('Error', e.message)
             else:
                 line = Line(points=[self.pendingNodeRef.pos[0] + 20, self.pendingNodeRef.pos[1] + 20,
                                     instance.pos[0] + 20, instance.pos[1] + 20], width=2)
@@ -246,10 +243,19 @@ class Demoer(FloatLayout):
         self.newRouterButton.bind(on_press=self.addRouter)
         self.add_widget(self.defaultBubble)
 
+    def showPopup(self, title, content):
+        popup = Popup(title=title,
+                      content=Label(text=content),
+                      size_hint=(None, None), size=(500, 200))
+        popup.open()
+
     def on_node_edit(self, connection, node_button, text_input):
         print('Changing address of', node_button, 'to', text_input.text)
 
-        # TODO: Actual address change
+        try:
+            self.netManager.setAddress(node_button, connection, text_input.text)
+        except DemoerException as e:
+            self.showPopup('Error', e.message)
 
     def on_touch_down(self, touch, after=False):
         if after:
