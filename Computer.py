@@ -107,16 +107,27 @@ class Connection:
         '''Checks whether the node is part of this connection.'''
         return node in (self.node1, self.node2)
 
+    def checkAddressing(self, node: Node, address: IPv4Interface):
+        if address == IPv4Interface('0.0.0.0/0'):
+            return
+
+        interfaces = ((self.node1, self.address1), (self.node2, self.address2))
+        for node_, address_ in interfaces:
+            if node_ != node and address_ != IPv4Interface('0.0.0.0/0'):
+                if address_.network != address.network:
+                    raise DemoerException('Addresses must be in the same network')
+                elif address_.ip == address.ip:
+                    raise DemoerException('Addresses must not collide')
+
     def setAddress(self, node: Node, address: IPv4Interface):
+        self.checkAddressing(node, address)
+
         if self.node1 == node:
             self.address1 = address
         elif self.node2 == node:
             self.address2 = address
         else:
             raise RuntimeError('Node {} is not part of connection {}'.format(node, self))
-
-        # TODO: Propagate to the whole network and check for validity (whether
-        # all Computers and Routers are in the same network).
 
     def getAddressStr(self, node: Node) -> str:
         if self.node1 == node:

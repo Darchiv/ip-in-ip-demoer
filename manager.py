@@ -58,9 +58,6 @@ class NetworkManager:
             raise DemoerException('The supplied address is invalid. Use a CIDR notation.')
 
         conn.setAddress(node, address)
-        # for connection in node.connections:
-            # if connection.includesNode(node2):
-                # break
 
     def deleteNode(self, key: Any):
         print('Deleting a node: ', key)
