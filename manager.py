@@ -46,6 +46,13 @@ class NetworkManager:
 
         return interfaces
 
+    def preparePacket(self, keys: Tuple[Any, Any]):
+        if len(keys) != 2:
+            raise RuntimeError('Packet needs exactly two endpoints')
+
+        start_node, end_node = self.nodes[keys[0]], self.nodes[keys[1]]
+        print('Preparing packet: {} -> {}'.format(start_node.getName(), end_node.getName()))
+
     def setAddress(self, key: Any, conn: Connection, addrStr: str):
         '''Set the network address on the `key` node's interface
         which is connected with `conn` connection.'''

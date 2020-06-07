@@ -1,4 +1,5 @@
 import functools
+import enum
 
 from kivy.app import App
 from kivy.clock import Clock
@@ -25,9 +26,15 @@ from kivy.core.window import Window
 from Computer import DemoerException
 from manager import NetworkManager
 
+class ToolState(enum.Enum):
+    EMPTY = 0
+    SELECTING_CONNECTION_END = 1
+    SELECTING_PACKET_NODE1 = 2
+    SELECTING_PACKET_NODE2 = 3
 
 class Demoer(FloatLayout):
     def __init__(self, *args, **kwargs):
+        self.state = ToolState.EMPTY
 
         # dimensions of the area where nodes can be placed
         self.workAreaXDim = 720
@@ -99,7 +106,7 @@ class Demoer(FloatLayout):
 
         # define simulation-related buttons and add them to the window
         self.toggleSimButton = Button(text="Symuluj")
-        self.addPacketButton = Button(text="Nowy pakiet")
+        self.addPacketButton = Button(text="Nowy pakiet", on_press=self.on_new_packet)
         self.stepSimButton = Button(text=">|")
         self.playSimButton = Button(text=">")
         self.simButtonLayout = BoxLayout()
@@ -108,6 +115,8 @@ class Demoer(FloatLayout):
         self.sidePanelLogLayout.add_widget(self.simButtonLayout)
         self.simButtonLayout.add_widget(self.playSimButton)
         self.simButtonLayout.add_widget(self.stepSimButton)
+
+        self.packetNodes = []
 
         # set window color
         Window.clearcolor = (0.7, 0.7, 0.7, 1)
@@ -212,26 +221,38 @@ class Demoer(FloatLayout):
 
     # show bubble menu on click on node
     # OR create connection between active node and clicked node when in connection mode
+    # OR select nodes for packet transmission
     def showNodeBubble(self, instance):
-        if not self.isInConnectionMode:
-            self.showNodeEditPanel(instance)
-            self.clearBubbles()
-            self.pendingNodeRef = instance
-            self.nodeBubble.pos = (instance.pos[0] - 105, instance.pos[1] + 40)
-            self.deleteNodeButton.bind(on_press=self.deleteNode)
-            self.newConnButton.bind(on_press=self.toggleConnectionMode)
-            self.add_widget(self.nodeBubble)
+        if self.state == ToolState.SELECTING_PACKET_NODE1:
+            self.packetNodes.append(instance)
+            instance.background_color = (1, 0.5, 0.5, 1)
+            self.state = ToolState.SELECTING_PACKET_NODE2
+        elif self.state == ToolState.SELECTING_PACKET_NODE2:
+            self.packetNodes.append(instance)
+            instance.background_color = (1, 0.5, 0.5, 1)
+            self.state = ToolState.EMPTY
+            self.netManager.preparePacket(tuple(self.packetNodes))
+            self.packetNodes.clear()
         else:
-            try:
-                connection = self.netManager.addConnection(instance, self.pendingNodeRef)
-            except DemoerException as e:
-                self.showPopup('Error', e.message)
+            if not self.isInConnectionMode:
+                self.showNodeEditPanel(instance)
+                self.clearBubbles()
+                self.pendingNodeRef = instance
+                self.nodeBubble.pos = (instance.pos[0] - 105, instance.pos[1] + 40)
+                self.deleteNodeButton.bind(on_press=self.deleteNode)
+                self.newConnButton.bind(on_press=self.toggleConnectionMode)
+                self.add_widget(self.nodeBubble)
             else:
-                line = Line(points=[self.pendingNodeRef.pos[0] + 20, self.pendingNodeRef.pos[1] + 20,
-                                    instance.pos[0] + 20, instance.pos[1] + 20], width=2)
-                self.canvas.before.add(line)
-                connection.setArg(line)
-                self.toggleConnectionMode(Button())
+                try:
+                    connection = self.netManager.addConnection(instance, self.pendingNodeRef)
+                except DemoerException as e:
+                    self.showPopup('Error', e.message)
+                else:
+                    line = Line(points=[self.pendingNodeRef.pos[0] + 20, self.pendingNodeRef.pos[1] + 20,
+                                        instance.pos[0] + 20, instance.pos[1] + 20], width=2)
+                    self.canvas.before.add(line)
+                    connection.setArg(line)
+                    self.toggleConnectionMode(Button())
 
     # show bubble on right-clicking canvas
     def showDefaultBubble(self, posx, posy):
@@ -248,6 +269,12 @@ class Demoer(FloatLayout):
                       content=Label(text=content),
                       size_hint=(None, None), size=(500, 200))
         popup.open()
+
+    def on_new_packet(self, instance):
+        if not self.state == ToolState.EMPTY:
+            return
+
+        self.state = ToolState.SELECTING_PACKET_NODE1
 
     def on_node_edit(self, connection, node_button, text_input):
         print('Changing address of', node_button, 'to', text_input.text)
