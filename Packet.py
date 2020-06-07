@@ -55,6 +55,10 @@ class Packet:
                   self.offset, self.ttl, self.protocol, "checksum", self.source, self.destination]
         return str(header)
 
+    def header_to_str_short(self):
+        header = ["source="+self.source, "dest"+self.destination, "ttl="+str(self.ttl)]
+        return str(header)
+
     def data_to_string(self):
         data = ""
         if isinstance(self.data, str):
@@ -65,6 +69,12 @@ class Packet:
 
     def to_string(self):
         header = self.header_to_str()
+
+        # TODO: add padding - make sure data starts on a 32 bit boundary.
+        return "{" + header + self.data_to_string() + "}"
+
+    def to_string_short(self):
+        header = self.header_to_str_short()
 
         # TODO: add padding - make sure data starts on a 32 bit boundary.
         return "{" + header + self.data_to_string() + "}"

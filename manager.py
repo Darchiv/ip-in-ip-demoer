@@ -141,7 +141,9 @@ class NetworkManager:
     def stepSimulation(self):
         for packetInfo in self.packetInfos[:]:
             nextNode, nextAddress, connType = self.__routeNextNode(packetInfo)
-            print('Route: {} -> {}, IP = {}, connType = {}'.format(packetInfo['currentNode'].getName(), nextNode.getName(), str(nextAddress.ip), connType))
+            txt = 'Route: {} -> {}, IP = {}, connType = {}'.format(
+                packetInfo['currentNode'].getName(), nextNode.getName(), str(nextAddress.ip), connType)
+            print(txt)
 
             packetInfo['packet'].ttl_dec()
 
@@ -149,9 +151,13 @@ class NetworkManager:
                 packetInfo['packet'] = packetInfo['packet'].decap()
 
             elif not isinstance(packetInfo['packet'].data, Packet) and connType == ConnectionType.TUNNEL:
-                packetInfo['packet'] = packetInfo['packet'].encap(packetInfo['currentNode'].getName(), nextNode.getName())
+                # TODO: make this work - source, destination
+                packetInfo['packet'] = packetInfo['packet'].encap(
+                    packetInfo['currentNode'].network[Router.GLOBAL].ip, nextNode.network[Router.GLOBAL].ip)
 
-            self.appendLog(packetInfo['packet'].to_string())
+            self.appendLog('Route: {} -> {}'.format(
+                packetInfo['currentNode'].getName(), nextNode.getName(), str(nextAddress.ip)))
+            self.appendLog(packetInfo['packet'].to_string_short())
 
             # TODO: This will allow animating the packet as it ventures through
             # the network. Node keys (buttons) or the connection need to be passed there
