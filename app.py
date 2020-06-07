@@ -265,7 +265,7 @@ class Demoer(FloatLayout):
         self.newRouterButton.bind(on_press=self.addRouter)
         self.add_widget(self.defaultBubble)
 
-    def animatePacket(self):
+    def animatePacket(self, sourceWidget, targetWidget):
         print('Animating')
 
     def showPopup(self, title, content):

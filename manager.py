@@ -9,7 +9,7 @@ PacketInfo = Dict[str, Any]
 class NetworkManager:
     def __init__(self, remove_connection: Callable[[Any], None],
                  appendLog: Callable[[str], None],
-                 animatePacket: Callable[[], None]):
+                 animatePacket: Callable[[Any, Any], None]):
         self.nodes: Dict[Any, Node] = {}
         self.remove_connection = remove_connection
         self.appendLog = appendLog
@@ -31,6 +31,13 @@ class NetworkManager:
 
     def isRouter(self, key: Any):
         return isinstance(self.nodes[key], Router)
+
+    def getKeyByNode(self, node: Node) -> Any:
+        for key, _node in self.nodes.items():
+            if _node == node:
+                return key
+
+        return None
 
     def getNodeName(self, key: Any):
         return self.nodes[key].getName()
@@ -162,9 +169,7 @@ class NetworkManager:
                 packetInfo['currentNode'].getName(), nextNode.getName(), str(nextAddress.ip)))
             self.appendLog(packetInfo['packet'].to_string_short())
 
-            # TODO: This will allow animating the packet as it ventures through
-            # the network. Node keys (buttons) or the connection need to be passed there
-            self.animatePacket()
+            self.animatePacket(self.getKeyByNode(packetInfo['currentNode']), self.getKeyByNode(nextNode))
 
             packetInfo['currentNode'] = nextNode
             if packetInfo['destAddr'] == nextAddress:
