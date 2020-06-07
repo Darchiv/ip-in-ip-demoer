@@ -1,6 +1,7 @@
 import functools
 import enum
 
+from kivy.animation import Animation
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.config import Config
@@ -267,6 +268,11 @@ class Demoer(FloatLayout):
 
     def animatePacket(self, sourceWidget, targetWidget):
         print('Animating')
+        img = Image(source='Images/packet.png', pos=sourceWidget.pos)
+        anim = Animation(x=targetWidget.pos[0], y=targetWidget.pos[1])
+        self.add_widget(img)
+        anim.start(img)
+
 
     def showPopup(self, title, content):
         popup = Popup(title=title,
