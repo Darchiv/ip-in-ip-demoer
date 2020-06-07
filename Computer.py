@@ -89,6 +89,10 @@ class Connection:
         if isinstance(node1, Computer) and isinstance(node2, Computer):
             raise DemoerException('A connection between two Computers cannot be created')
 
+        if isinstance(node1, Computer) and len(node1.connections) > 1 \
+        or isinstance(node2, Computer) and len(node2.connections) > 1:
+            raise DemoerException('A Computer can have only one connection')
+
         if isinstance(node1, Router) and isinstance(node2, Router):
             self.type = ConnectionType.TUNNEL
         else:
