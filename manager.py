@@ -96,8 +96,9 @@ class NetworkManager:
 
         self.appendLog('A packet has been prepared: {} -> {}'.format(start_node.getName(), end_node.getName()))
 
-    def __routeNextNode(self, packetInfo: PacketInfo) -> Tuple[Node, IPv4Interface, ConnectionType]:
-        '''Returns the next node on the routing path, along with its address and connection type.'''
+    def __routeNextNode(self, packetInfo: PacketInfo) -> Tuple[Node, IPv4Interface, IPv4Interface, ConnectionType]:
+        '''Returns the next node on the routing path, along with its source
+        and destination addresses, and connection type.'''
         # Basic routing:
         # - from Computer to neighbor Router,
         # - from Router to Router through Tunnel, or
@@ -115,14 +116,16 @@ class NetworkManager:
                 raise DemoerException('The {} <-> {} connection is not configured appropriately'.format(conn.node1.getName(), conn.node2.getName()))
 
             destNode, destAddr = conn.getDestinationNode(currentNode)
-            route_info = (destNode, destAddr, conn.type)
+            _, sourceAddr = conn.getDestinationNode(destNode)
+            route_info = (destNode, sourceAddr, destAddr, conn.type)
 
         elif isinstance(currentNode, Router):
             for conn in currentNode.connections:
                 nextNode, nextAddr = conn.getDestinationNode(currentNode)
+                _, sourceAddr = conn.getDestinationNode(nextNode)
                 if nextAddr == destAddr:
                     print('Directly connected: {}'.format(destAddr))
-                    route_info = (nextNode, nextAddr, conn.type)
+                    route_info = (nextNode, sourceAddr, nextAddr, conn.type)
                     break
 
             if route_info is None:
@@ -130,7 +133,8 @@ class NetworkManager:
                     if conn.type == ConnectionType.TUNNEL:
                         print('Tunnelling to: {}'.format(destAddr))
                         nextNode, nextAddr = conn.getDestinationNode(currentNode)
-                        route_info = (nextNode, nextAddr, conn.type)
+                        _, sourceAddr = conn.getDestinationNode(nextNode)
+                        route_info = (nextNode, sourceAddr, nextAddr, conn.type)
                         break
 
         if route_info is None:
@@ -140,7 +144,7 @@ class NetworkManager:
 
     def stepSimulation(self):
         for packetInfo in self.packetInfos[:]:
-            nextNode, nextAddress, connType = self.__routeNextNode(packetInfo)
+            nextNode, sourceAddress, nextAddress, connType = self.__routeNextNode(packetInfo)
             txt = 'Route: {} -> {}, IP = {}, connType = {}'.format(
                 packetInfo['currentNode'].getName(), nextNode.getName(), str(nextAddress.ip), connType)
             print(txt)
@@ -151,9 +155,8 @@ class NetworkManager:
                 packetInfo['packet'] = packetInfo['packet'].decap()
 
             elif not isinstance(packetInfo['packet'].data, Packet) and connType == ConnectionType.TUNNEL:
-                # TODO: make this work - source, destination
                 packetInfo['packet'] = packetInfo['packet'].encap(
-                    packetInfo['currentNode'].network[Router.GLOBAL].ip, nextNode.network[Router.GLOBAL].ip)
+                    str(sourceAddress.ip), str(nextAddress.ip))
 
             self.appendLog('Route: {} -> {}'.format(
                 packetInfo['currentNode'].getName(), nextNode.getName(), str(nextAddress.ip)))
