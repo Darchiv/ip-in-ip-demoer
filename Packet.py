@@ -45,6 +45,9 @@ class Packet:
         self.totalLength = 20 + (len(data) if isinstance(data, str) else len(data.to_string()))
         self.str_header_size = len(self.header_to_str())
 
+    def ttl_dec(self):
+        self.ttl = self.ttl-1
+
     def header_to_str(self):
         header = [self.VERSION, self.IHL, self.dscp,
                   int(self.header_size + (len(self.data) if isinstance(self.data, str) else len(self.data.to_string()))),

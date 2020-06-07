@@ -139,22 +139,31 @@ class NetworkManager:
         return route_info
 
     def stepSimulation(self):
+        prevConnType = ConnectionType.INTRA_NETWORK
         for packetInfo in self.packetInfos[:]:
             nextNode, nextAddress, connType = self.__routeNextNode(packetInfo)
             print('Route: {} -> {}, IP = {}, connType = {}'.format(packetInfo['currentNode'].getName(), nextNode.getName(), str(nextAddress.ip), connType))
 
-            packetInfo['currentNode'] = nextNode
+            packetInfo['packet'].ttl_dec()
 
-            # TODO: Change the packetInfo['packet'] (or reassign) appropriately
-            # using nextNode, nextAddress, connType.
-            # There are also all packetInfo properties for use.
+            if connType != prevConnType:
+                if connType == ConnectionType.TUNNEL:
+                    packetInfo['packet'] = packetInfo['packet'].encap(packetInfo['currentNode'].getName(), nextNode.getName())
+                    print("Enkapsulacja")
+                else:
+                    # TODO: this one is not triggering
+                    packetInfo['packet'] = packetInfo['packet'].decap()
+                    print("Dekapsulacja")
 
-            # TODO: use self.appendLog() to display the packet
+            prevConnType = connType
+
+            self.appendLog(packetInfo['packet'].to_string())
 
             # TODO: This will allow animating the packet as it ventures through
             # the network. Node keys (buttons) or the connection need to be passed there
             self.animatePacket()
 
+            packetInfo['currentNode'] = nextNode
             if packetInfo['destAddr'] == nextAddress:
                 print('Packet has arrived at its destination')
                 self.packetInfos.remove(packetInfo)
