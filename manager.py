@@ -147,6 +147,7 @@ class NetworkManager:
 
             if isinstance(packetInfo['packet'].data, Packet) and connType == ConnectionType.INTRA_NETWORK:
                 packetInfo['packet'] = packetInfo['packet'].decap()
+
             elif not isinstance(packetInfo['packet'].data, Packet) and connType == ConnectionType.TUNNEL:
                 packetInfo['packet'] = packetInfo['packet'].encap(packetInfo['currentNode'].getName(), nextNode.getName())
 
