@@ -4,17 +4,20 @@ from ipaddress import IPv4Interface, AddressValueError
 from Computer import Computer, Router, Connection, Node, DemoerException
 
 class NetworkManager:
-    def __init__(self, remove_connection: Callable[[Any], None]):
+    def __init__(self, remove_connection: Callable[[Any], None], appendLog: Callable[[str], None]):
         self.nodes: Dict[Any, Node] = {}
         self.remove_connection = remove_connection
+        self.appendLog = appendLog
 
     def addComputer(self, key: Any):
-        print('Adding a computer: ', key)
-        self.nodes[key] = Computer(0)
+        computer = Computer(0)
+        self.appendLog('{} computer has been added'.format(computer.getName()))
+        self.nodes[key] = computer
 
     def addRouter(self, key: Any):
-        print('Adding a router: ', key)
-        self.nodes[key] = Router(0)
+        router = Router(0)
+        self.appendLog('{} router has been added'.format(router.getName()))
+        self.nodes[key] = router
 
     def isComputer(self, key: Any):
         return isinstance(self.nodes[key], Computer)
@@ -26,13 +29,14 @@ class NetworkManager:
         return self.nodes[key].getName()
 
     def addConnection(self, key1: Any, key2: Any) -> Connection:
-        print('Adding a connection between', key1, 'and', key2)
         node1 = self.nodes[key1]
         node2 = self.nodes[key2]
 
         connection = Connection(node1, node2)
         node1.connections.add(connection)
         node2.connections.add(connection)
+
+        self.appendLog('A connection between {} and {} has been created'.format(node1.getName(), node2.getName()))
         return connection
 
     def getNodeInterfaces(self, key: Any) -> Dict[str, Tuple[str, Connection]]:
@@ -51,12 +55,11 @@ class NetworkManager:
             raise RuntimeError('Packet needs exactly two endpoints')
 
         start_node, end_node = self.nodes[keys[0]], self.nodes[keys[1]]
-        print('Preparing packet: {} -> {}'.format(start_node.getName(), end_node.getName()))
+        self.appendLog('A packet has been prepared: {} -> {}'.format(start_node.getName(), end_node.getName()))
 
     def setAddress(self, key: Any, conn: Connection, addrStr: str):
         '''Set the network address on the `key` node's interface
         which is connected with `conn` connection.'''
-        print('Setting the network address of', key, '(connection', conn, ') to ', addrStr)
         node = self.nodes[key]
 
         try:
@@ -65,13 +68,15 @@ class NetworkManager:
             raise DemoerException('The supplied address is invalid. Use a CIDR notation.')
 
         conn.setAddress(node, address)
+        self.appendLog('The network address of {} changed to: {}'.format(node.getName(), addrStr))
 
     def deleteNode(self, key: Any):
-        print('Deleting a node: ', key)
         node: Node = self.nodes[key]
+        node_name = node.getName()
 
         for connection in node.connections.copy():
             connection.disband()
             self.remove_connection(connection.arg)
 
         del self.nodes[key]
+        self.appendLog('Node {} has beed removed'.format(node_name))

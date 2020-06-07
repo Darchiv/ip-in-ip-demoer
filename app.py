@@ -65,7 +65,7 @@ class Demoer(FloatLayout):
 
         # global state - adding connection or not
         self.isInConnectionMode = False
-        self.netManager = NetworkManager(self.__deleteLine)
+        self.netManager = NetworkManager(self.__deleteLine, self.appendLog)
 
         # define widgets of side panel and add them to window
         self.sidePanelTabbedPanel = TabbedPanel(do_default_tab=False, size=(200, 600), pos=(800, 0),
@@ -87,9 +87,8 @@ class Demoer(FloatLayout):
         self.sidePanelLogTab.add_widget(self.sidePanelLogLayout)
         self.sidePanelTabbedPanel.add_widget(self.sidePanelLogTab)
 
-        # test of WIP log display
-        for i in range(100):
-            self.logField.text = self.logField.text + "This is a test log entry. \n\n"
+        # A welcome log
+        self.appendLog('A new workspace has been created.')
 
         # define widgets of node edit panel to be added to window later
         # when a node is selected, add sidePanelNodeTab with the proper tab name to sidePanelTabbedPanel
@@ -147,7 +146,6 @@ class Demoer(FloatLayout):
 
     # display node property edit tab
     def showNodeEditPanel(self, instance):
-        print('Show edit panel of:', instance)
         node_name = self.netManager.getNodeName(instance)
         self.sidePanelNodeTab.text = node_name
 
@@ -161,7 +159,6 @@ class Demoer(FloatLayout):
 
         interfaces = self.netManager.getNodeInterfaces(instance)
         for label, (ip, conn) in interfaces.items():
-            print('Interface:', label, 'ip:', ip)
             self.sidePanelNodeLayout.add_widget(Label(text=label, size_hint=(1, None), height=30))
             input_field = TextInput(text=ip, multiline=False, size_hint=(1, None), height=30)
             cb = functools.partial(self.on_node_edit, conn, instance)
@@ -174,7 +171,6 @@ class Demoer(FloatLayout):
         self.remove_widget(self.defaultBubble)
 
     def __deleteLine(self, line):
-        print('deleting line', line)
         self.canvas.before.remove(line)
 
     # remove active node after clicking in bubble menu
@@ -269,6 +265,9 @@ class Demoer(FloatLayout):
                       content=Label(text=content),
                       size_hint=(None, None), size=(500, 200))
         popup.open()
+
+    def appendLog(self, content):
+        self.logField.text = self.logField.text + content + '\n\n'
 
     def on_new_packet(self, instance):
         if not self.state == ToolState.EMPTY:
