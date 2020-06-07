@@ -65,7 +65,7 @@ class Demoer(FloatLayout):
 
         # global state - adding connection or not
         self.isInConnectionMode = False
-        self.netManager = NetworkManager(self.__deleteLine, self.appendLog)
+        self.netManager = NetworkManager(self.__deleteLine, self.appendLog, self.animatePacket)
 
         # define widgets of side panel and add them to window
         self.sidePanelTabbedPanel = TabbedPanel(do_default_tab=False, size=(200, 600), pos=(800, 0),
@@ -106,7 +106,7 @@ class Demoer(FloatLayout):
         # define simulation-related buttons and add them to the window
         self.toggleSimButton = Button(text="Symuluj")
         self.addPacketButton = Button(text="Nowy pakiet", on_press=self.on_new_packet)
-        self.stepSimButton = Button(text=">|")
+        self.stepSimButton = Button(text=">|", on_press=self.on_step)
         self.playSimButton = Button(text=">")
         self.simButtonLayout = BoxLayout()
         self.sidePanelLogLayout.add_widget(self.addPacketButton)
@@ -224,11 +224,16 @@ class Demoer(FloatLayout):
             instance.background_color = (1, 0.5, 0.5, 1)
             self.state = ToolState.SELECTING_PACKET_NODE2
         elif self.state == ToolState.SELECTING_PACKET_NODE2:
-            self.packetNodes.append(instance)
-            instance.background_color = (1, 0.5, 0.5, 1)
-            self.state = ToolState.EMPTY
-            self.netManager.preparePacket(tuple(self.packetNodes))
-            self.packetNodes.clear()
+            packetNodes = self.packetNodes.copy()
+            packetNodes.append(instance)
+            try:
+                self.netManager.preparePacket(tuple(packetNodes))
+            except DemoerException as e:
+                self.showPopup('Error', e.message)
+            else:
+                instance.background_color = (1, 0.5, 0.5, 1)
+                self.state = ToolState.EMPTY
+                self.packetNodes.clear()
         else:
             if not self.isInConnectionMode:
                 self.showNodeEditPanel(instance)
@@ -260,6 +265,9 @@ class Demoer(FloatLayout):
         self.newRouterButton.bind(on_press=self.addRouter)
         self.add_widget(self.defaultBubble)
 
+    def animatePacket(self):
+        print('Animating')
+
     def showPopup(self, title, content):
         popup = Popup(title=title,
                       content=Label(text=content),
@@ -269,6 +277,12 @@ class Demoer(FloatLayout):
     def appendLog(self, content):
         self.logField.text = self.logField.text + content + '\n\n'
 
+    def on_step(self, instance):
+        try:
+            self.netManager.stepSimulation()
+        except DemoerException as e:
+            self.showPopup('Error', e.message)
+
     def on_new_packet(self, instance):
         if not self.state == ToolState.EMPTY:
             return
@@ -276,8 +290,6 @@ class Demoer(FloatLayout):
         self.state = ToolState.SELECTING_PACKET_NODE1
 
     def on_node_edit(self, connection, node_button, text_input):
-        print('Changing address of', node_button, 'to', text_input.text)
-
         try:
             self.netManager.setAddress(node_button, connection, text_input.text)
         except DemoerException as e:
@@ -289,10 +301,14 @@ class Demoer(FloatLayout):
             if self.workAreaXPos + self.workAreaXDim > touch.pos[0] > self.workAreaXPos \
                     and self.workAreaYPos + self.workAreaYDim > touch.pos[1] > self.workAreaYPos:
                 if touch.button == "right":
-                    if not self.isInConnectionMode:
-                        self.showDefaultBubble(touch.x, touch.y)
+                    if self.state != ToolState.EMPTY:
+                        self.state = ToolState.EMPTY
+                        self.packetNodes.clear()
                     else:
-                        self.toggleConnectionMode(Button())
+                        if not self.isInConnectionMode:
+                            self.showDefaultBubble(touch.x, touch.y)
+                        else:
+                            self.toggleConnectionMode(Button())
         else:
             Clock.schedule_once(lambda dt: self.on_touch_down(touch, True), 0.01)
             return super(Demoer, self).on_touch_down(touch)

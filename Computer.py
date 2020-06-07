@@ -1,5 +1,5 @@
 import enum
-from typing import Any, Union, Set
+from typing import Any, Union, Set, Tuple
 from ipaddress import IPv4Interface
 
 class DemoerException(Exception):
@@ -86,14 +86,20 @@ class Connection:
     '''A logical representation of a connection between nodes (computers or routers).'''
 
     def __init__(self, node1: Node, node2: Node):
+        self.type: ConnectionType
+
         if isinstance(node1, Computer) and isinstance(node2, Computer):
             raise DemoerException('A connection between two Computers cannot be created')
 
-        if isinstance(node1, Computer) and len(node1.connections) > 1 \
-        or isinstance(node2, Computer) and len(node2.connections) > 1:
+        if isinstance(node1, Computer) and len(node1.connections) > 0 \
+        or isinstance(node2, Computer) and len(node2.connections) > 0:
             raise DemoerException('A Computer can have only one connection')
 
         if isinstance(node1, Router) and isinstance(node2, Router):
+            for connection in node1.connections | node2.connections:
+                if connection.type == ConnectionType.TUNNEL:
+                    raise DemoerException('A Router can have only one tunnel connection')
+
             self.type = ConnectionType.TUNNEL
         else:
             self.type = ConnectionType.INTRA_NETWORK
@@ -107,9 +113,12 @@ class Connection:
     def setArg(self, arg: Any):
         self.arg = arg
 
-    def includesNode(self, node: Node):
+    def includesNode(self, node: Node) -> bool:
         '''Checks whether the node is part of this connection.'''
         return node in (self.node1, self.node2)
+
+    def includesAddress(self, address: IPv4Interface) -> bool:
+        return address in (self.address1, self.address2)
 
     def checkAddressing(self, node: Node, address: IPv4Interface):
         if address == IPv4Interface('0.0.0.0/0'):
@@ -123,6 +132,15 @@ class Connection:
                 elif address_.ip == address.ip:
                     raise DemoerException('Addresses must not collide')
 
+    def hasValidAddressing(self) -> bool:
+        addresses = (self.address1, self.address2)
+
+        for address in addresses:
+            if address == IPv4Interface('0.0.0.0/0'):
+                return False
+
+        return True
+
     def setAddress(self, node: Node, address: IPv4Interface):
         self.checkAddressing(node, address)
 
@@ -134,22 +152,29 @@ class Connection:
             raise RuntimeError('Node {} is not part of connection {}'.format(node, self))
 
     def getAddressStr(self, node: Node) -> str:
+        return str(self.getAddress(node))
+
+    def getAddress(self, node: Node) -> IPv4Interface:
         if self.node1 == node:
-            return str(self.address1)
+            return self.address1
 
         if self.node2 == node:
-            return str(self.address2)
+            return self.address2
+
+        raise RuntimeError('Node {} is not part of connection {}'.format(node, self))
+
+    def getDestinationNode(self, node: Node) -> Tuple[Node, IPv4Interface]:
+        if self.node1 == node:
+            return (self.node2, self.address2)
+
+        if self.node2 == node:
+            return (self.node1, self.address1)
 
         raise RuntimeError('Node {} is not part of connection {}'.format(node, self))
 
     def getDestinationName(self, node: Node):
-        if self.node1 == node:
-            return '-> {}'.format(self.node2.getName())
-
-        if self.node2 == node:
-            return '-> {}'.format(self.node1.getName())
-
-        raise RuntimeError('Node {} is not part of connection {}'.format(node, self))
+        destNode, _ = self.getDestinationNode(node)
+        return '-> {}'.format(destNode.getName())
 
     def disband(self):
         self.node1.connections.discard(self)
