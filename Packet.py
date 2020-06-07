@@ -56,7 +56,7 @@ class Packet:
         return str(header)
 
     def header_to_str_short(self):
-        header = ["source="+self.source, "dest"+self.destination, "ttl="+str(self.ttl)]
+        header = ["source="+self.source, "dest="+self.destination, "ttl="+str(self.ttl)]
         return str(header)
 
     def data_to_string(self):
